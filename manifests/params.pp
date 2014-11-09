@@ -8,7 +8,7 @@
 #
 class selinux::params {
   $sx_mod_dir   = '/usr/share/selinux'
-  $mode         = 'disabled'
+  $mode         = 'permissive'
   $package_ensure = present
 
   $sx_fs_mount  = $::osfamily ? {

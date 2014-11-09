@@ -10,18 +10,14 @@
 #  This module will configure SELinux and/or deploy SELinux based modules to running
 #  system.
 #
-# Requires:
-#  - Class[stdlib]. This is Puppet Labs standard library to include additional methods for use within Puppet. [https://github.com/puppetlabs/puppetlabs-stdlib]
-#
 # Sample Usage:
 #  include selinux
 #
 class selinux (
-  $mode = $::selinux::params::mode,
-  $package_ensure = $::selinux::params::package_ensure,
+  $mode           = $selinux::params::mode,
+  $package_ensure = $selinux::params::package_ensure,
+  $sx_mod_dir     = $selinux::params::sx_mod_dir,
 ) inherits selinux::params {
-
-  include stdlib
 
   class { 'selinux::package': } ->
   class { 'selinux::config': }
