@@ -4,7 +4,6 @@
 class selinux::restorecond::config {
 
   concat { $selinux::restorecond::config_file:
-    ensure => present,
     mode   => $selinux::restorecond::config_file_mode,
     owner  => $selinux::restorecond::config_file_owner,
     group  => $selinux::restorecond::config_file_group,
