@@ -17,6 +17,7 @@ class selinux (
   $mode           = $selinux::params::mode,
   $package_ensure = $selinux::params::package_ensure,
   $sx_mod_dir     = $selinux::params::sx_mod_dir,
+  $puppet_boolean = $selinux::params::puppet_boolean,
 ) inherits selinux::params {
 
   class { 'selinux::package': } ->

@@ -19,6 +19,14 @@ class selinux::params {
     default         => '/selinux',
   }
 
+  $puppet_boolean  = $::osfamily ? {
+    'RedHat' => $::operatingsystemrelease ? {
+      /^7\./        => 'puppetagent_manage_all_files',
+      default       => 'puppet_manage_all_files',
+    },
+    default         => 'NONE',
+  }
+
   $restorecond_config_file       = '/etc/selinux/restorecond.conf'
   $restorecond_config_file_mode  = '0644'
   $restorecond_config_file_owner = 'root'

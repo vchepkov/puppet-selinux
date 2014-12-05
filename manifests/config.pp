@@ -25,7 +25,10 @@ class selinux::config (
   file { $selinux::sx_mod_dir:
     ensure => directory,
   }
-
+  # Allow puppet to modify all files
+  if $selinux::puppet_boolean != 'NONE' and $mode != 'disabled' {
+    selinux::boolean { $selinux::puppet_boolean: ensure => 'on', }
+  }
   # Check to see if the mode set is valid.
   if $mode == 'enforcing' or $mode == 'permissive' or $mode == 'disabled' {
     case $::operatingsystemrelease {
