@@ -43,7 +43,7 @@ define selinux::module(
   Exec {
     path         => '/sbin:/usr/sbin:/bin:/usr/bin',
     refreshonly  => true,
-    cwd          => $selinux::params::sx_mod_dir,
+    cwd          => $selinux::sx_mod_dir,
   }
 
   exec { "${name}-checkloaded":
@@ -54,17 +54,17 @@ define selinux::module(
   }
 
   ## Begin Configuration
-  file { "${::selinux::params::sx_mod_dir}/${name}.te":
+  file { "${selinux::sx_mod_dir}/${name}.te":
     ensure  => $ensure,
     source  => $source,
     tag     => 'selinux-module',
   }
   if !$use_makefile {
-    file { "${::selinux::params::sx_mod_dir}/${name}.mod":
+    file { "${selinux::sx_mod_dir}/${name}.mod":
       tag   => ['selinux-module-build', 'selinux-module'],
     }
   }
-  file { "${::selinux::params::sx_mod_dir}/${name}.pp":
+  file { "${selinux::sx_mod_dir}/${name}.pp":
     tag   => ['selinux-module-build', 'selinux-module'],
   }
 
@@ -73,7 +73,7 @@ define selinux::module(
     present: {
       if $use_makefile {
         exec { "${name}-buildmod":
-          command => "true",
+          command => 'true',
         }
         exec { "${name}-buildpp":
           command => "make -f ${makefile} ${name}.pp",
@@ -91,7 +91,7 @@ define selinux::module(
       }
 
       # Set dependency ordering
-      File["${::selinux::params::sx_mod_dir}/${name}.te"]
+      File["${selinux::sx_mod_dir}/${name}.te"]
       ~> Exec["${name}-buildmod"]
       ~> Exec["${name}-buildpp"]
       ~> Exec["${name}-install"]

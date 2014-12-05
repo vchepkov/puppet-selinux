@@ -22,7 +22,7 @@ class selinux::config (
     path => '/bin:/sbin:/usr/bin:/usr/sbin',
   }
 
-  file { $selinux::params::sx_mod_dir:
+  file { $selinux::sx_mod_dir:
     ensure => directory,
   }
 
