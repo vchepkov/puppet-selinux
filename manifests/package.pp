@@ -16,6 +16,15 @@
 class selinux::package {
   case $::operatingsystem {
     CentOS,Fedora,RHEL,RedHat,Scientific: {
+      package { 'selinux-policy-targeted':
+        ensure => installed,
+        notify => Exec['selinux_autorelabel'],
+      }
+      exec{ 'selinux_autorelabel':
+        command     => 'touch /.autorelabel',
+        path        => '/bin:/usr/bin',
+        refreshonly => true,
+      }
       case $::operatingsystemrelease {
         /^5.+$/: {
           package { 'policycoreutils':
