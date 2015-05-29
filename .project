@@ -3,6 +3,7 @@
 	<name>selinux</name>
 	<comment></comment>
 	<projects>
+		<project>concat</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
