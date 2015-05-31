@@ -19,13 +19,20 @@ class selinux::package {
     fail("Use of private class ${name} by ${caller_module_name}")
   }
 
+  $ensure = $::selinux::mode ? {
+    'disabled' => 'absent',
+    default    => 'installed',
+  }
   package { $::selinux::params::package_name:
-    ensure => installed,
+    ensure => $ensure,
   }
 
   package { "selinux-policy-${::selinux::policy}":
-    ensure => installed,
-    notify => Exec['selinux_autorelabel'],
+    ensure => $ensure,
+    notify => $::selinux::mode ? {
+      'disabled' => undef,
+      default    => Exec['selinux_autorelabel'],
+    },
   }
 
   exec { 'selinux_autorelabel':
