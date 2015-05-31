@@ -10,8 +10,6 @@
 #
 # Parameters:
 #   - $ensure: (present|absent) - sets the state for a module
-#   - $selinux::params::sx_mod_dir: The directory compiled modules will live on a system (default: /usr/share/selinux)
-#   - $mode: Allows an admin to set the SELinux status. (default: enforcing)
 #   - $source: the source file (either a puppet URI or local file) of the SELinux .te module
 #
 # Actions:
@@ -32,6 +30,18 @@ define selinux::module(
   $use_makefile   = false,
   $makefile       = '/usr/share/selinux/devel/Makefile',
 ) {
+
+  include selinux
+
+  if $::selinux_config_policy in ['targeted','strict']
+  {
+    $selinux_policy = $::selinux_config_policy
+  }
+  elsif $::selinux_custom_policy
+  {
+    $selinux_policy = $::selinux_custom_policy
+  }
+
   # Set Resource Defaults
   File {
     owner => 'root',
@@ -47,25 +57,25 @@ define selinux::module(
   }
 
   exec { "${name}-checkloaded":
-    refreshonly   => false,
-    creates       => "/etc/selinux/${::selinux_config_policy}/modules/active/modules/${name}.pp",
-    command       => 'true',
-    notify        => Exec["${name}-buildmod"],
+    refreshonly => false,
+    creates     => "/etc/selinux/${selinux_policy}/modules/active/modules/${name}.pp",
+    command     => 'true',
+    notify      => Exec["${name}-buildmod"],
   }
 
   ## Begin Configuration
-  file { "${selinux::sx_mod_dir}/${name}.te":
-    ensure  => $ensure,
-    source  => $source,
-    tag     => 'selinux-module',
+  file { "${::selinux::sx_mod_dir}/${name}.te":
+    ensure => $ensure,
+    source => $source,
+    tag    => "selinux-module-${name}",
   }
   if !$use_makefile {
-    file { "${selinux::sx_mod_dir}/${name}.mod":
-      tag   => ['selinux-module-build', 'selinux-module'],
+    file { "${::selinux::sx_mod_dir}/${name}.mod":
+      tag   => ["selinux-module-build-${name}", "selinux-module-${name}"],
     }
   }
-  file { "${selinux::sx_mod_dir}/${name}.pp":
-    tag   => ['selinux-module-build', 'selinux-module'],
+  file { "${::selinux::sx_mod_dir}/${name}.pp":
+    tag   => ["selinux-module-build-${name}", "selinux-module-${name}"],
   }
 
   # Specific executables based on present or absent.
@@ -91,11 +101,11 @@ define selinux::module(
       }
 
       # Set dependency ordering
-      File["${selinux::sx_mod_dir}/${name}.te"]
+      File["${::selinux::sx_mod_dir}/${name}.te"]
       ~> Exec["${name}-buildmod"]
       ~> Exec["${name}-buildpp"]
       ~> Exec["${name}-install"]
-      -> File<| tag == 'selinux-module-build' |>
+      -> File<| tag == "selinux-module-build-${name}" |>
     }
     absent: {
       exec { "${name}-remove":
@@ -104,7 +114,7 @@ define selinux::module(
 
       # Set dependency ordering
       Exec["${name}-remove"]
-      -> File<| tag == 'selinux-module' |>
+      -> File<| tag == "selinux-module-${name}" |>
     }
     default: {
       fail("Invalid status for SELinux Module: ${ensure}")

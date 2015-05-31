@@ -18,56 +18,47 @@
 class selinux::config (
   $mode = $::selinux::mode,
 ) {
-  Exec {
-    path => '/bin:/sbin:/usr/bin:/usr/sbin',
+
+  if $caller_module_name != $module_name {
+    fail("Use of private class ${name} by ${caller_module_name}")
   }
+
+  # Validations
+  validate_re($mode, ['^enforcing$', '^permissive$', '^disabled$'], "Valid modes are enforcing, permissive, and disabled.  Received: ${mode}")
 
   file { $selinux::sx_mod_dir:
     ensure => directory,
   }
+
   # Allow puppet to modify all files
   if $selinux::puppet_boolean != 'NONE' and $mode != 'disabled' {
     selinux::boolean { $selinux::puppet_boolean: ensure => 'on', }
   }
-  # Check to see if the mode set is valid.
-  if $mode == 'enforcing' or $mode == 'permissive' or $mode == 'disabled' {
-    case $::operatingsystemrelease {
-      # Change command based on OS release.
-      # RHEL <= 5 do not support --follow-symlinks with sed
-      # ref: @lboynton: http://git.io/QvJ9ww
-      /^5/: {
-        $selinux_set_command = "sed -i \"s@^\\(SELINUX=\\).*@\\1${mode}@\" /etc/sysconfig/selinux"
-      }
-      default: {
-        $selinux_set_command = "sed -i --follow-symlinks \"s@^\\(SELINUX=\\).*@\\1${mode}@\" /etc/sysconfig/selinux"
-      }
-    }
 
-    exec { "set-selinux-config-to-${mode}":
-      command => $selinux_set_command,
-      unless  => "grep -q \"SELINUX=${mode}\" /etc/sysconfig/selinux",
-    }
+  file_line { "set-selinux-config-to-${mode}":
+    path  => '/etc/selinux/config',
+    line  => "SELINUX=${mode}",
+    match => '^SELINUX=\w+',
+  }
 
-    case $mode {
-      permissive,disabled: {
-        $sestatus = '0'
-        if $mode == 'disabled' and $::selinux_current_mode == 'permissive' {
-          notice('A reboot is required to fully disable SELinux. SELinux will operate in Permissive mode until a reboot')
-        }
-      }
-      enforcing: {
-        $sestatus = '1'
-      }
-      default : {
-        fail('You must specify a mode (enforced, permissive, or disabled) for selinux operation')
+  case $mode {
+    permissive, disabled: {
+      $sestatus = '0'
+      if $mode == 'disabled' and defined('$::selinux_current_mode') and $::selinux_current_mode == 'permissive' {
+        notice('A reboot is required to fully disable SELinux. SELinux will operate in Permissive mode until a reboot')
       }
     }
+    enforcing: {
+      $sestatus = '1'
+    }
+    default : {
+      fail('You must specify a mode (enforced, permissive, or disabled) for selinux operation')
+    }
+  }
 
-    exec { "change-selinux-status-to-${mode}":
-      command => "echo ${sestatus} > /${::selinux::params::sx_fs_mount}/enforce",
-      unless  => "grep -q '${sestatus}' /${::selinux::params::sx_fs_mount}/enforce",
-    }
-  } else {
-    fail("Invalid mode specified for SELinux: ${mode}")
+  exec { "change-selinux-status-to-${mode}":
+    command => "setenforce ${sestatus}",
+    unless  => "getenforce | grep -qi \"${mode}\\|disabled\"",
+    path    => '/bin:/usr/bin:/usr/sbin',
   }
 }
