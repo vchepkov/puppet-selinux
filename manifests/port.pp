@@ -50,10 +50,12 @@ define selinux::port (
     $protocol_switch=''
   }
 
-  exec { "add_${context}_${port}":
-    command => "semanage port -a -t ${context} ${protocol_switch}${port}",
-    unless  => "semanage port -l|grep \"^${context}.*${protocol}.*${port}\"",
-    path    => '/bin:/sbin:/usr/bin:/usr/sbin',
-    require => Class['selinux::package']
+  if str2bool($::selinux) {
+    exec { "add_${context}_${port}":
+      command => "semanage port -a -t ${context} ${protocol_switch}${port}",
+      unless  => "semanage port -l|grep \"^${context}.*${protocol}.*${port}\"",
+      path    => '/bin:/sbin:/usr/bin:/usr/sbin',
+      require => Class['selinux::package']
+    }
   }
 }

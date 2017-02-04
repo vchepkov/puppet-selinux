@@ -35,17 +35,19 @@ define selinux::boolean (
     path => '/bin:/sbin:/usr/bin:/usr/sbin',
   }
 
-  case $ensure {
-    on, true: {
-      exec { "setsebool -P '${name}' true":
-        unless => "getsebool '${name}' | awk '{ print \$3 }' | grep on",
+  if str2bool($::selinux) {
+    case $ensure {
+      on, true: {
+        exec { "setsebool -P '${name}' true":
+          unless => "getsebool '${name}' | awk '{ print \$3 }' | grep on",
+        }
       }
-    }
-    off, false: {
-      exec { "setsebool -P '${name}' false":
-        unless => "getsebool '${name}' | awk '{ print \$3 }' | grep off",
+      off, false: {
+        exec { "setsebool -P '${name}' false":
+          unless => "getsebool '${name}' | awk '{ print \$3 }' | grep off",
+        }
       }
+      default: { err ( "Unknown or undefined boolean state ${ensure}" ) }
     }
-    default: { err ( "Unknown or undefined boolean state ${ensure}" ) }
   }
 }
